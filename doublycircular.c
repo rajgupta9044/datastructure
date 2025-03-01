@@ -10,17 +10,21 @@ struct Node {
 struct Node* createNode(int value) {
     struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
     newNode->data = value;
-    newNode->next = NULL;
-    newNode->prev = NULL;
+    newNode->next = newNode;
+    newNode->prev = newNode;
     return newNode;
 }
 
 struct Node* insertAtBeginning(struct Node* head, int value) {
     struct Node* temp = createNode(value);
-    if (head != NULL) {
-        temp->next = head;
-        head->prev = temp;
+    if (head == NULL) {
+        return temp;
     }
+    struct Node* tail = head->prev;
+    temp->next = head;
+    temp->prev = tail;
+    head->prev = temp;
+    tail->next = temp;
     return temp;
 }
 
@@ -29,12 +33,11 @@ struct Node* insertAtEnd(struct Node* head, int value) {
     if (head == NULL) {
         return temp;
     }
-    struct Node* tail = head;
-    while (tail->next != NULL) {
-        tail = tail->next;
-    }
+    struct Node* tail = head->prev;
     tail->next = temp;
     temp->prev = tail;
+    temp->next = head;
+    head->prev = temp;
     return head;
 }
 
@@ -49,18 +52,17 @@ struct Node* insertAtPos(struct Node* head, int value, int pos) {
     struct Node* temp = createNode(value);
     struct Node* current = head;
     int count = 1;
-    while (count < pos - 1 && current != NULL) {
+    while (count < pos - 1 && current->next != head) {
         current = current->next;
         count++;
     }
-    if (current == NULL) {
+    if (count < pos - 1) {
         printf("Position out of bounds!\n");
         return head;
     }
     temp->next = current->next;
     temp->prev = current;
-    if (current->next != NULL)
-        current->next->prev = temp;
+    current->next->prev = temp;
     current->next = temp;
     return head;
 }
@@ -69,10 +71,15 @@ struct Node* deleteAtBeginning(struct Node* head) {
     if (head == NULL) {
         return NULL;
     }
+    if (head->next == head) {
+        free(head);
+        return NULL;
+    }
+    struct Node* tail = head->prev;
     struct Node* temp = head;
     head = head->next;
-    if (head != NULL)
-        head->prev = NULL;
+    head->prev = tail;
+    tail->next = head;
     free(temp);
     return head;
 }
@@ -81,15 +88,14 @@ struct Node* deleteAtEnd(struct Node* head) {
     if (head == NULL) {
         return NULL;
     }
-    if (head->next == NULL) {
+    if (head->next == head) {
         free(head);
         return NULL;
     }
-    struct Node* tail = head;
-    while (tail->next != NULL) {
-        tail = tail->next;
-    }
-    tail->prev->next = NULL;
+    struct Node* tail = head->prev;
+    struct Node* newTail = tail->prev;
+    newTail->next = head;
+    head->prev = newTail;
     free(tail);
     return head;
 }
@@ -104,28 +110,30 @@ struct Node* deleteAtPos(struct Node* head, int pos) {
     }
     struct Node* current = head;
     int count = 1;
-    while (count < pos && current != NULL) {
+    while (count < pos && current->next != head) {
         current = current->next;
         count++;
     }
-    if (current == NULL) {
+    if (count < pos) {
         printf("Position out of bounds!\n");
         return head;
     }
-    if (current->next != NULL)
-        current->next->prev = current->prev;
-    if (current->prev != NULL)
-        current->prev->next = current->next;
+    current->prev->next = current->next;
+    current->next->prev = current->prev;
     free(current);
     return head;
 }
 
 void printList(struct Node* head) {
+    if (head == NULL) {
+        printf("List is empty\n");
+        return;
+    }
     struct Node* temp = head;
-    while (temp != NULL) {
+    do {
         printf("%d ", temp->data);
         temp = temp->next;
-    }
+    } while (temp != head);
     printf("\n");
 }
 
@@ -140,11 +148,11 @@ struct Node* createList(int arr[], int size) {
 int main() {
     int arr[5] = {11, 21, 31, 41, 51};
     struct Node* head = createList(arr, 5);
-    printf("The doubly linked list is: ");
+    printf("The circular doubly linked list is: ");
     printList(head);
 
     head = insertAtBeginning(head, 5);
-    printf("insert at beginning: ");
+    printf("Insert at beginning: ");
     printList(head);
 
     head = insertAtEnd(head, 99);
